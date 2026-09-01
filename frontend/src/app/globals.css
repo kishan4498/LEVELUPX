@@ -1,0 +1,301 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --lx-ink: #17201c;
+  --lx-paper: #f3f6f5;
+  --lx-surface: #ffffff;
+  --lx-line: #dce5e1;
+  --lx-mint: #12a77a;
+  --lx-violet: #6958e8;
+  --lx-ember: #ed6548;
+  --lx-gold: #d99b24;
+  --lx-sky: #3d83c5;
+}
+
+* {
+  box-sizing: border-box;
+  letter-spacing: 0 !important;
+}
+
+body {
+  margin: 0;
+  background: var(--lx-paper);
+  color: var(--lx-ink);
+  font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button,
+a,
+input,
+textarea,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: rgba(105, 88, 232, 0.18);
+  color: var(--lx-ink);
+}
+
+:focus-visible {
+  outline: 3px solid rgba(61, 131, 197, 0.35);
+  outline-offset: 2px;
+}
+
+.lx-panel {
+  border: 1px solid var(--lx-line);
+  background: var(--lx-surface);
+  box-shadow: 0 10px 28px rgba(23, 32, 28, 0.08);
+}
+
+.lx-interactive {
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background-color 180ms ease,
+    color 180ms ease;
+}
+
+.lx-interactive:hover {
+  transform: translateY(-2px);
+}
+
+.lx-interactive:active {
+  transform: translateY(1px);
+}
+
+.lx-page-enter {
+  animation: lx-page-enter 360ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.lx-content-enter {
+  animation: lx-page-enter 420ms 70ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.lx-progress-fill {
+  transform-origin: left center;
+  animation: lx-progress-enter 620ms 120ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transition: width 320ms ease;
+}
+
+.lx-nav-item {
+  position: relative;
+}
+
+.lx-nav-item::before {
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  left: 0;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--lx-mint);
+  content: "";
+  opacity: 0;
+  transform: scaleY(0.35);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.lx-nav-item-active::before {
+  opacity: 1;
+  transform: scaleY(1);
+}
+
+.lx-button {
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
+}
+
+.lx-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.lx-button:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: none;
+}
+
+.lx-field {
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease;
+}
+
+.lx-field:hover:not(:disabled) {
+  border-color: rgba(23, 32, 28, 0.28);
+}
+
+@keyframes lx-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes lx-progress-enter {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.levelupx-achievement-celebration {
+  animation: levelupx-celebration-enter 520ms ease-out both;
+}
+
+.levelupx-medal-pulse {
+  animation: levelupx-medal-pop 900ms ease-out both;
+}
+
+.levelupx-confetti {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  width: 8px;
+  height: 14px;
+  border-radius: 2px;
+  opacity: 0;
+  animation: levelupx-confetti-fall 1500ms ease-out forwards;
+}
+
+.levelupx-confetti-0 {
+  margin-left: -42%;
+  background: #f59e0b;
+  animation-delay: 60ms;
+}
+
+.levelupx-confetti-1 {
+  margin-left: -29%;
+  background: #14b8a6;
+  animation-delay: 180ms;
+}
+
+.levelupx-confetti-2 {
+  margin-left: -16%;
+  background: #8b5cf6;
+  animation-delay: 100ms;
+}
+
+.levelupx-confetti-3 {
+  margin-left: -4%;
+  background: #f97316;
+  animation-delay: 240ms;
+}
+
+.levelupx-confetti-4 {
+  margin-left: 12%;
+  background: #22c55e;
+  animation-delay: 140ms;
+}
+
+.levelupx-confetti-5 {
+  margin-left: 27%;
+  background: #a855f7;
+  animation-delay: 300ms;
+}
+
+.levelupx-confetti-6 {
+  margin-left: 40%;
+  background: #eab308;
+  animation-delay: 210ms;
+}
+
+@keyframes levelupx-celebration-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.99);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes levelupx-medal-pop {
+  0% {
+    transform: scale(0.7) rotate(-8deg);
+  }
+
+  45% {
+    transform: scale(1.15) rotate(5deg);
+  }
+
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes levelupx-confetti-fall {
+  0% {
+    opacity: 0;
+    transform: translateY(0) rotate(0deg);
+  }
+
+  12% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(160px) rotate(220deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lx-page-enter,
+  .lx-content-enter,
+  .lx-progress-fill,
+  .levelupx-achievement-celebration,
+  .levelupx-medal-pulse,
+  .levelupx-confetti {
+    animation: none;
+  }
+
+  .lx-interactive,
+  .lx-button,
+  .lx-field,
+  .lx-nav-item::before,
+  .lx-progress-fill {
+    transition-duration: 0.01ms;
+  }
+
+  .lx-interactive:hover,
+  .lx-interactive:active,
+  .lx-button:hover:not(:disabled),
+  .lx-button:active:not(:disabled) {
+    transform: none;
+  }
+}

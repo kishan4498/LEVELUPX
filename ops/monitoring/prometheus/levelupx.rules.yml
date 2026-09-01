@@ -1,0 +1,78 @@
+groups:
+  - name: levelupx-recording
+    interval: 15s
+    rules:
+      - record: levelupx:http_requests:rate5m
+        expr: sum(rate(levelupx_http_requests_total[5m])) or vector(0)
+
+      - record: levelupx:http_errors:ratio5m
+        expr: |
+          (sum(rate(levelupx_http_requests_total{status_class="5xx"}[5m])) or vector(0))
+          /
+          clamp_min(sum(rate(levelupx_http_requests_total[5m])) or vector(0), 0.001)
+
+      - record: levelupx:http_request_duration:p95_5m_seconds
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (rate(levelupx_http_request_duration_seconds_bucket[5m]))
+          )
+
+  - name: levelupx-alerts
+    interval: 15s
+    rules:
+      - alert: LevelUpXApiDown
+        expr: up{job="levelupx-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          owner: levelupx
+        annotations:
+          summary: LevelUpX API is unavailable to Prometheus
+          description: The backend metrics target has failed continuously for one minute.
+
+      - alert: LevelUpXHighApiErrorRate
+        expr: |
+          levelupx:http_errors:ratio5m > 0.05
+          and
+          sum(increase(levelupx_http_requests_total[5m])) > 20
+        for: 5m
+        labels:
+          severity: critical
+          owner: levelupx
+        annotations:
+          summary: LevelUpX API error rate is above 5 percent
+          description: Check recent deployments, database health, and correlated request logs.
+
+      - alert: LevelUpXHighApiLatency
+        expr: |
+          levelupx:http_request_duration:p95_5m_seconds > 1
+          and
+          sum(increase(levelupx_http_requests_total[5m])) > 20
+        for: 10m
+        labels:
+          severity: warning
+          owner: levelupx
+        annotations:
+          summary: LevelUpX API p95 latency is above one second
+          description: Inspect route latency, database load, and external provider response times.
+
+      - alert: LevelUpXUnhandledErrors
+        expr: sum(increase(levelupx_unhandled_errors_total[5m])) > 0
+        for: 1m
+        labels:
+          severity: critical
+          owner: levelupx
+        annotations:
+          summary: LevelUpX recorded an unhandled backend error
+          description: Review structured logs and match the failing request by request id.
+
+      - alert: LevelUpXHighMemory
+        expr: max(levelupx_process_resident_memory_bytes{job="levelupx-backend"}) > 536870912
+        for: 10m
+        labels:
+          severity: warning
+          owner: levelupx
+        annotations:
+          summary: LevelUpX API memory is above 512 MB
+          description: Inspect heap growth, workload changes, and container memory pressure.

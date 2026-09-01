@@ -1,0 +1,63 @@
+{
+  "name": "levelupx-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:db": "vitest run --config vitest.db.config.ts",
+    "test:e2e:server": "tsx src/test/browserTestServer.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src prisma --max-warnings=0",
+    "jobs:run": "tsx src/jobs/runJobs.ts",
+    "jobs:schedule": "tsx src/jobs/printHostedSchedulerPlan.ts",
+    "jobs:local": "tsx src/jobs/localScheduler.ts",
+    "auth:admin-bootstrap": "tsx src/cli/generateAdminBootstrapCode.ts",
+    "auth:admin-device": "tsx src/cli/registerSuperAdminDevice.ts",
+    "auth:super-admin-device": "tsx src/cli/registerSuperAdminDevice.ts",
+    "prisma:generate": "prisma generate",
+    "prisma:deploy": "prisma migrate deploy",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "prisma db seed"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "@sentry/node": "^10.53.1",
+    "@simplewebauthn/server": "^13.3.2",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "helmet": "^8.0.0",
+    "ioredis": "^5.10.1",
+    "jsonwebtoken": "^9.0.3",
+    "prom-client": "^15.1.3",
+    "socket.io": "^4.8.3",
+    "web-push": "^3.6.7",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/bcrypt": "^6.0.0",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^22.9.0",
+    "@types/supertest": "^7.2.0",
+    "@types/web-push": "^3.6.4",
+    "eslint": "^10.8.0",
+    "prisma": "^5.22.0",
+    "supertest": "^7.2.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.66.0",
+    "vitest": "^4.1.6"
+  }
+}

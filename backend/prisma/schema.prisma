@@ -1,0 +1,844 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                              String     @id @default(uuid())
+  name                            String
+  email                           String     @unique
+  passwordHash                    String
+  role                            Role       @default(USER)
+  status                          UserStatus @default(ACTIVE)
+  emailVerifiedAt                 DateTime?
+  emailVerificationCodeHash       String?
+  emailVerificationExpiresAt      DateTime?
+  emailVerificationFailedAttempts Int        @default(0)
+  twoStepEnabled                  Boolean    @default(false)
+  twoStepCodeHash                 String?
+  twoStepExpiresAt                DateTime?
+  passwordResetTokenHash          String?
+  passwordResetExpiresAt          DateTime?
+  adminWebAuthnUserId             String?    @unique
+
+  profile                   UserProfile?
+  ownedGuilds               Guild[]                     @relation("GuildOwner")
+  guildMemberships          GuildMember[]
+  quests                    Quest[]
+  focusSessions             FocusSession[]
+  xpTransactions            XpTransaction[]
+  coinTransactions          CoinTransaction[]
+  achievements              UserAchievement[]
+  skills                    UserSkill[]
+  cosmetics                 UserCosmetic[]
+  marketplaceListings       MarketplaceListing[]        @relation("MarketplaceSeller")
+  marketplacePurchases      MarketplaceListing[]        @relation("MarketplaceBuyer")
+  insights                  AiInsight[]
+  promptRuns                AiPromptRun[]
+  notifications             Notification[]
+  notificationPreference    UserNotificationPreference?
+  pushSubscriptions         UserPushSubscription[]
+  adminActions              AdminAction[]               @relation("AdminActor")
+  adminReports              AdminReport[]               @relation("AdminReportGenerator")
+  superAdminTrustedDevices  SuperAdminTrustedDevice[]
+  superAdminLoginChallenges SuperAdminLoginChallenge[]
+  abuseReports              AbuseReport[]
+  leaderboardRows           Leaderboard[]
+  teamQuestContributions    TeamQuestContribution[]
+  sessions                  UserSession[]
+  projects                  Project[]
+  customRewards             CustomReward[]
+  customRewardRedemptions   CustomRewardRedemption[]
+  productEvents             ProductEvent[]
+  outgoingAccountability    AccountabilityConnection[]  @relation("AccountabilityRequester")
+  incomingAccountability    AccountabilityConnection[]  @relation("AccountabilityRecipient")
+  adminPasskeys             AdminPasskey[]
+  adminWebAuthnChallenges   AdminWebAuthnChallenge[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AdminPasskey {
+  id             String    @id @default(uuid())
+  userId         String
+  credentialId   String    @unique
+  publicKey      Bytes
+  counter        BigInt    @default(0)
+  webAuthnUserId String
+  deviceType     String
+  backedUp       Boolean
+  transports     String[]  @default([])
+  label          String
+  active         Boolean   @default(true)
+  lastUsedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, active])
+}
+
+model AdminWebAuthnChallenge {
+  id        String    @id @default(uuid())
+  userId    String
+  type      String
+  challenge String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type, expiresAt, usedAt])
+}
+
+model SuperAdminTrustedDevice {
+  id             String    @id @default(uuid())
+  userId         String
+  label          String
+  deviceKeyHash  String
+  bindingVersion Int       @default(1)
+  active         Boolean   @default(true)
+  lastUsedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user       User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challenges SuperAdminLoginChallenge[]
+
+  @@unique([userId, label])
+  @@index([userId, active])
+}
+
+model SuperAdminLoginChallenge {
+  id        String    @id @default(uuid())
+  userId    String
+  deviceId  String
+  codeAHash String
+  codeBHash String
+  codeCHash String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user   User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device SuperAdminTrustedDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([userId, deviceId, expiresAt])
+  @@index([usedAt])
+}
+
+model UserProfile {
+  id                       String           @id @default(uuid())
+  userId                   String           @unique
+  avatarUrl                String?
+  level                    Int              @default(1)
+  totalXp                  Int              @default(0)
+  coins                    Int              @default(0)
+  currentStreak            Int              @default(0)
+  longestStreak            Int              @default(0)
+  selectedCharacterClassId String?
+  selectedCosmeticId       String?
+  timezone                 String           @default("UTC")
+  productivityMode         ProductivityMode @default(PERSONAL)
+  preferredFocusMinutes    Int              @default(25)
+  dailyGoalMinutes         Int              @default(60)
+  onboardingCompletedAt    DateTime?
+
+  user                   User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  selectedCharacterClass CharacterClass? @relation(fields: [selectedCharacterClassId], references: [id])
+  selectedCosmetic       CosmeticItem?   @relation("SelectedCosmetic", fields: [selectedCosmeticId], references: [id])
+}
+
+model CharacterClass {
+  id               String @id @default(uuid())
+  name             String @unique
+  description      String
+  baseXpMultiplier Float  @default(1)
+
+  selectedProfiles UserProfile[]
+}
+
+model Project {
+  id          String    @id @default(uuid())
+  userId      String
+  name        String
+  description String?
+  color       String    @default("#4F8A70")
+  archivedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quests Quest[]
+
+  @@unique([userId, name])
+  @@index([userId, archivedAt])
+}
+
+model Quest {
+  id                 String         @id @default(uuid())
+  userId             String
+  title              String
+  description        String?
+  difficulty         Difficulty
+  category           String
+  estimatedMinutes   Int
+  xpReward           Int
+  coinReward         Int
+  status             QuestStatus    @default(PENDING)
+  dueDate            DateTime?
+  projectId          String?
+  parentQuestId      String?
+  recurrenceSourceId String?        @unique
+  priority           QuestPriority  @default(MEDIUM)
+  tags               String[]       @default([])
+  recurrence         RecurrenceType @default(NONE)
+  reminderAt         DateTime?
+  reminderSentAt     DateTime?
+  clientRequestId    String?        @unique
+
+  user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project             Project?          @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  parent              Quest?            @relation("QuestSubtasks", fields: [parentQuestId], references: [id], onDelete: Cascade)
+  subtasks            Quest[]           @relation("QuestSubtasks")
+  recurrenceSource    Quest?            @relation("QuestRecurrence", fields: [recurrenceSourceId], references: [id], onDelete: SetNull)
+  recurrenceSuccessor Quest?            @relation("QuestRecurrence")
+  focusSessions       FocusSession[]
+  completions         QuestCompletion[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, projectId, status])
+  @@index([userId, priority, dueDate])
+  @@index([userId, reminderAt, status])
+  @@index([parentQuestId])
+}
+
+model QuestCompletion {
+  id          String   @id @default(uuid())
+  questId     String   @unique
+  userId      String
+  completedAt DateTime @default(now())
+  xpEarned    Int
+  coinsEarned Int
+
+  quest Quest @relation(fields: [questId], references: [id], onDelete: Cascade)
+
+  @@index([userId, completedAt])
+}
+
+model FocusSession {
+  id              String      @id @default(uuid())
+  userId          String
+  questId         String?
+  startTime       DateTime
+  endTime         DateTime?
+  durationMinutes Int?
+  sessionType     SessionType
+  completed       Boolean     @default(false)
+  targetMinutes   Int?
+  goal            String?
+  pausedAt        DateTime?
+  pausedSeconds   Int         @default(0)
+  distractionNote String?
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quest Quest? @relation(fields: [questId], references: [id], onDelete: SetNull)
+
+  @@index([userId, startTime])
+}
+
+model XpTransaction {
+  id         String  @id @default(uuid())
+  userId     String
+  sourceType String
+  sourceId   String?
+  amount     Int
+  multiplier Float   @default(1)
+  reason     String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model CoinTransaction {
+  id           String              @id @default(uuid())
+  userId       String
+  type         CoinTransactionType
+  amount       Int
+  reason       String
+  balanceAfter Int
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model Achievement {
+  id             String            @id @default(uuid())
+  title          String            @unique
+  description    String
+  conditionType  String
+  conditionValue Int
+  xpBonus        Int               @default(0)
+  coinBonus      Int               @default(0)
+  rarity         AchievementRarity
+
+  users UserAchievement[]
+}
+
+model UserAchievement {
+  id            String   @id @default(uuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+}
+
+model Skill {
+  id                  String  @id @default(uuid())
+  name                String  @unique
+  description         String
+  maxLevel            Int     @default(5)
+  prerequisiteSkillId String?
+  prerequisiteLevel   Int     @default(1)
+
+  prerequisite Skill?  @relation("SkillPrerequisite", fields: [prerequisiteSkillId], references: [id], onDelete: SetNull)
+  unlocks      Skill[] @relation("SkillPrerequisite")
+  users        UserSkill[]
+
+  @@index([prerequisiteSkillId])
+}
+
+model UserSkill {
+  id      String @id @default(uuid())
+  userId  String
+  skillId String
+  level   Int    @default(1)
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillId])
+}
+
+model CosmeticItem {
+  id          String         @id @default(uuid())
+  name        String         @unique
+  description String
+  slot        CosmeticSlot
+  rarity      CosmeticRarity
+  unlockLevel Int            @default(1)
+
+  owners              UserCosmetic[]
+  marketplaceListings MarketplaceListing[]
+  selectedProfiles    UserProfile[]        @relation("SelectedCosmetic")
+}
+
+model UserCosmetic {
+  id             String   @id @default(uuid())
+  userId         String
+  cosmeticItemId String
+  unlockedAt     DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cosmeticItem CosmeticItem @relation(fields: [cosmeticItemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, cosmeticItemId])
+  @@index([userId, unlockedAt])
+}
+
+model MarketplaceListing {
+  id             String                   @id @default(uuid())
+  sellerId       String
+  buyerId        String?
+  cosmeticItemId String
+  priceCoins     Int
+  status         MarketplaceListingStatus @default(ACTIVE)
+  createdAt      DateTime                 @default(now())
+  soldAt         DateTime?
+  cancelledAt    DateTime?
+
+  seller       User         @relation("MarketplaceSeller", fields: [sellerId], references: [id], onDelete: Cascade)
+  buyer        User?        @relation("MarketplaceBuyer", fields: [buyerId], references: [id], onDelete: SetNull)
+  cosmeticItem CosmeticItem @relation(fields: [cosmeticItemId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([sellerId, status])
+}
+
+model Guild {
+  id             String          @id @default(uuid())
+  name           String
+  description    String?
+  ownerId        String
+  totalXp        Int             @default(0)
+  visibility     GuildVisibility @default(PUBLIC)
+  inviteCodeHash String?
+
+  owner       User          @relation("GuildOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members     GuildMember[]
+  teamQuests  TeamQuest[]
+  leaderboard Leaderboard[]
+
+  createdAt DateTime @default(now())
+}
+
+model GuildMember {
+  id       String    @id @default(uuid())
+  guildId  String
+  userId   String
+  role     GuildRole @default(MEMBER)
+  joinedAt DateTime  @default(now())
+
+  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([guildId, userId])
+}
+
+model TeamQuest {
+  id                  String          @id @default(uuid())
+  guildId             String
+  title               String
+  targetType          String
+  targetValue         Int
+  currentProgress     Int             @default(0)
+  rewardXp            Int
+  rewardCoins         Int
+  startDate           DateTime
+  endDate             DateTime
+  status              TeamQuestStatus @default(ACTIVE)
+  repeatWeekly        Boolean         @default(false)
+  recurrenceSeriesId  String?
+  recurrenceWeekStart DateTime?
+  sourceTeamQuestId   String?
+
+  guild                   Guild                   @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  contributions           TeamQuestContribution[]
+  sourceTeamQuest         TeamQuest?              @relation("TeamQuestRecurrence", fields: [sourceTeamQuestId], references: [id], onDelete: SetNull)
+  materializedTeamQuests  TeamQuest[]             @relation("TeamQuestRecurrence")
+
+  @@unique([recurrenceSeriesId, recurrenceWeekStart])
+  @@index([repeatWeekly, status, endDate])
+  @@index([sourceTeamQuestId])
+}
+
+model TeamQuestContribution {
+  id          String   @id @default(uuid())
+  teamQuestId String
+  userId      String
+  progress    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  teamQuest TeamQuest @relation(fields: [teamQuestId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamQuestId, userId])
+  @@index([userId])
+}
+
+model Leaderboard {
+  id           String            @id @default(uuid())
+  userId       String
+  guildId      String?
+  period       LeaderboardPeriod
+  xp           Int               @default(0)
+  focusMinutes Int               @default(0)
+  rank         Int
+  updatedAt    DateTime          @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guild Guild? @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, guildId, period])
+}
+
+model AiInsight {
+  id              String      @id @default(uuid())
+  userId          String
+  insightType     InsightType
+  title           String
+  message         String
+  confidenceScore Float
+  providerSource  String?
+  feedbackValue   String?
+  feedbackComment String?
+  feedbackAt      DateTime?
+  generatedAt     DateTime    @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, generatedAt])
+  @@index([feedbackValue, feedbackAt])
+}
+
+model AiPromptRun {
+  id             String   @id @default(uuid())
+  userId         String
+  providerSource String
+  promptVersion  String
+  promptAudience String
+  maxInsights    Int
+  usedFallback   Boolean
+  insightCount   Int
+  durationMs     Int
+  trigger        String
+  createdAt      DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([providerSource, createdAt])
+  @@index([promptVersion, createdAt])
+}
+
+model AdminAction {
+  id          String   @id @default(uuid())
+  adminUserId String
+  action      String
+  targetType  String
+  targetId    String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  adminUser User @relation("AdminActor", fields: [adminUserId], references: [id], onDelete: Cascade)
+}
+
+model AdminReport {
+  id          String            @id @default(uuid())
+  adminUserId String
+  reportType  String
+  format      AdminReportFormat
+  filename    String
+  contentType String
+  sizeBytes   Int
+  storageKey  String?
+  metadata    Json?
+  createdAt   DateTime          @default(now())
+
+  adminUser User @relation("AdminReportGenerator", fields: [adminUserId], references: [id], onDelete: Cascade)
+
+  @@index([adminUserId, createdAt])
+  @@index([reportType, createdAt])
+}
+
+model AbuseReport {
+  id        String            @id @default(uuid())
+  userId    String
+  reason    String
+  severity  AbuseSeverity
+  status    AbuseReportStatus @default(OPEN)
+  dedupeKey String?
+  metadata  Json?
+  createdAt DateTime          @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  category  String    @default("GENERAL")
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, category, createdAt])
+}
+
+model UserNotificationPreference {
+  id                       String    @id @default(uuid())
+  userId                   String    @unique
+  inAppEnabled             Boolean   @default(true)
+  rewardNotifications      Boolean   @default(true)
+  achievementNotifications Boolean   @default(true)
+  insightNotifications     Boolean   @default(true)
+  guildNotifications       Boolean   @default(true)
+  pushNotifications        Boolean   @default(false)
+  questReminders           Boolean   @default(true)
+  dailyDigest              Boolean   @default(false)
+  quietHoursStart          String?
+  quietHoursEnd            String?
+  lastDailyDigestAt        DateTime?
+  updatedAt                DateTime  @updatedAt
+  createdAt                DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserPushSubscription {
+  id            String    @id @default(uuid())
+  userId        String
+  endpoint      String    @unique
+  p256dh        String
+  auth          String
+  userAgent     String?
+  failureCount  Int       @default(0)
+  lastFailureAt DateTime?
+  disabledAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, updatedAt])
+  @@index([disabledAt, lastFailureAt])
+}
+
+model EconomySettings {
+  id             String   @id @default(uuid())
+  xpMultiplier   Float    @default(1)
+  coinMultiplier Float    @default(1)
+  dailyCoinLimit Int      @default(500)
+  maxQuestReward Int      @default(1000)
+  inflationRate  Float    @default(0)
+  updatedBy      String?
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+}
+
+model UserSession {
+  id         String    @id @default(uuid())
+  userId     String
+  tokenHash  String    @unique
+  userAgent  String?
+  ipAddress  String?
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  lastUsedAt DateTime  @default(now())
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt, expiresAt])
+}
+
+model CustomReward {
+  id          String   @id @default(uuid())
+  userId      String
+  title       String
+  description String?
+  costCoins   Int
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  redemptions CustomRewardRedemption[]
+
+  @@index([userId, active, createdAt])
+}
+
+model CustomRewardRedemption {
+  id         String   @id @default(uuid())
+  userId     String
+  rewardId   String
+  costCoins  Int
+  redeemedAt DateTime @default(now())
+
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reward CustomReward @relation(fields: [rewardId], references: [id], onDelete: Cascade)
+
+  @@index([userId, redeemedAt])
+}
+
+model AccountabilityConnection {
+  id              String           @id @default(uuid())
+  requesterId     String
+  recipientId     String
+  status          ConnectionStatus @default(PENDING)
+  blockedByUserId String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  requester User @relation("AccountabilityRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  recipient User @relation("AccountabilityRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, recipientId])
+  @@index([recipientId, status])
+  @@index([blockedByUserId])
+}
+
+model ProductEvent {
+  id         String   @id @default(uuid())
+  userId     String?
+  name       String
+  properties Json?
+  occurredAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([name, occurredAt])
+  @@index([userId, occurredAt])
+}
+
+enum Role {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  BANNED
+  SUSPENDED
+}
+
+enum ProductivityMode {
+  STUDENT
+  PROFESSIONAL
+  PERSONAL
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+  BOSS
+  RECOVERY
+}
+
+enum QuestStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  ARCHIVED
+}
+
+enum QuestPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum RecurrenceType {
+  NONE
+  DAILY
+  WEEKDAYS
+  WEEKLY
+  MONTHLY
+}
+
+enum SessionType {
+  POMODORO
+  DEEP_WORK
+  SHORT_BREAK
+  LONG_BREAK
+}
+
+enum CoinTransactionType {
+  EARNED
+  SPENT
+  ADMIN_ADJUSTMENT
+  PENALTY
+  BONUS
+}
+
+enum AchievementRarity {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+enum GuildRole {
+  OWNER
+  MODERATOR
+  MEMBER
+}
+
+enum GuildVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum ConnectionStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  BLOCKED
+}
+
+enum TeamQuestStatus {
+  ACTIVE
+  COMPLETED
+  FAILED
+  ARCHIVED
+}
+
+enum LeaderboardPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+  ALL_TIME
+}
+
+enum InsightType {
+  BURNOUT_WARNING
+  STUDY_SUGGESTION
+  CONSISTENCY_ANALYSIS
+  RECOVERY_RECOMMENDATION
+  SCHEDULE_OPTIMIZATION
+}
+
+enum AbuseSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AbuseReportStatus {
+  OPEN
+  REVIEWED
+  ACTION_TAKEN
+  DISMISSED
+}
+
+enum AdminReportFormat {
+  CSV
+  PDF
+}
+
+enum CosmeticSlot {
+  AVATAR_FRAME
+  PROFILE_BADGE
+}
+
+enum CosmeticRarity {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+enum MarketplaceListingStatus {
+  ACTIVE
+  SOLD
+  CANCELLED
+}

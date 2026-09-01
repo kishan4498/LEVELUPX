@@ -1,0 +1,27 @@
+groups:
+  - name: levelupx-api
+    rules:
+      - alert: LevelUpXHighApiErrorRate
+        expr: sum(rate(levelupx_http_requests_total{status_class="5xx"}[5m])) / sum(rate(levelupx_http_requests_total[5m])) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: LevelUpX API 5xx rate is above 5 percent
+          description: Check Sentry events, backend logs, database readiness, and recent releases.
+      - alert: LevelUpXHighApiLatency
+        expr: histogram_quantile(0.95, sum(rate(levelupx_http_request_duration_seconds_bucket[5m])) by (le)) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: LevelUpX API p95 latency is above 1 second
+          description: Check database load, external provider latency, and backend CPU or memory pressure.
+      - alert: LevelUpXUnhandledErrors
+        expr: sum(rate(levelupx_unhandled_errors_total[5m])) > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: LevelUpX backend is recording unhandled errors
+          description: Review Sentry issue groups and correlated request ids in structured logs.

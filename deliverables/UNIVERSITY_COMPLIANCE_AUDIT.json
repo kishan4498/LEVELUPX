@@ -1,0 +1,50 @@
+{
+  "audit_date": "2026-08-13",
+  "docx": "D:\\Hobby Projects\\LEVELUPX\\deliverables\\LEVELUPX_Project_Report.docx",
+  "pdf": "D:\\Hobby Projects\\LEVELUPX\\deliverables\\LEVELUPX_Project_Report.pdf",
+  "docx_sha256": "EFD201244131A28DEE90A59EFF32F9D17273F8BB98E6D25914F4B7F6016409D5",
+  "pdf_sha256": "680CDE43FEA85823F53E7459FBC59100F00F23A096B5A4E1BB0EE3749E154CE5",
+  "pages_pdf": 111,
+  "page_size": "A4",
+  "margins_inches": {
+    "left": 1.25,
+    "right": 1.0,
+    "top": 0.75,
+    "bottom": 0.75
+  },
+  "sections": 3,
+  "figures": 18,
+  "table_captions": 37,
+  "figure_captions": 18,
+  "report_tables": 37,
+  "metadata_blanks": 11,
+  "automated_code_gate": {
+    "backend_default": "53 files / 270 passed",
+    "http": "1 file / 5 passed",
+    "frontend": "6 files / 10 passed",
+    "database": "4 files / 16 skipped (no safe test DB)",
+    "e2e": "not rerun",
+    "typecheck_lint_build": "backend and frontend passed",
+    "prisma": "validate passed",
+    "compose": "config passed"
+  },
+  "document_gate": {
+    "required_sections": "pass",
+    "page_range": "pass",
+    "toc_lof_lot": "pass",
+    "typography": "pass",
+    "margins_numbering": "pass",
+    "citations_1_29": "pass",
+    "synopsis_project_report_alignment": "pass",
+    "all_six_previously_flagged_figure_layouts": "pass",
+    "awkward_table_wraps": 0,
+    "blank_or_clipped_pages": 0,
+    "a11y_findings": 0
+  },
+  "submission_blocker": "Fill student/registration/guide/designation/institution/year/acknowledgement/place/date/signature facts.",
+  "evidence_limitations": [
+    "The University sample-form pages referenced as enclosed were not supplied, so exact sample-layout conformity cannot be certified.",
+    "The company-profile not-applicable statement assumes an individual non-company project.",
+    "One-sided printing, hard binding, portal upload, deadline compliance, and postal dispatch are external submission duties."
+  ]
+}

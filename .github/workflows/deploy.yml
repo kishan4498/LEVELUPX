@@ -1,0 +1,124 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: GitHub environment containing production secrets
+        required: true
+        default: production
+      run_deploy_hooks:
+        description: Trigger backend/frontend deploy hooks after validation and builds
+        required: true
+        type: boolean
+        default: false
+
+jobs:
+  deploy-ready:
+    name: Validate, Build, and Trigger Deploy
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    env:
+      NODE_ENV: production
+      PORT: ${{ vars.PORT }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      JWT_ACCESS_SECRET: ${{ secrets.JWT_ACCESS_SECRET }}
+      JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
+      RATE_LIMIT_WINDOW_MS: ${{ vars.RATE_LIMIT_WINDOW_MS }}
+      RATE_LIMIT_MAX_REQUESTS: ${{ vars.RATE_LIMIT_MAX_REQUESTS }}
+      AUTH_RATE_LIMIT_WINDOW_MS: ${{ vars.AUTH_RATE_LIMIT_WINDOW_MS }}
+      AUTH_RATE_LIMIT_MAX_REQUESTS: ${{ vars.AUTH_RATE_LIMIT_MAX_REQUESTS }}
+      CORS_ALLOWED_ORIGINS: ${{ vars.CORS_ALLOWED_ORIGINS }}
+      LOG_LEVEL: ${{ vars.LOG_LEVEL }}
+      REPORT_STORAGE_DIR: ${{ vars.REPORT_STORAGE_DIR }}
+      WEEKLY_REPORT_DELIVERY_ENABLED: ${{ vars.WEEKLY_REPORT_DELIVERY_ENABLED }}
+      WEEKLY_REPORT_DELIVERY_PROVIDER: ${{ vars.WEEKLY_REPORT_DELIVERY_PROVIDER }}
+      WEEKLY_REPORT_EMAIL_PROVIDER: ${{ vars.WEEKLY_REPORT_EMAIL_PROVIDER }}
+      WEEKLY_REPORT_RECIPIENT_EMAILS: ${{ secrets.WEEKLY_REPORT_RECIPIENT_EMAILS }}
+      WEEKLY_REPORT_EMAIL_FROM: ${{ vars.WEEKLY_REPORT_EMAIL_FROM }}
+      WEEKLY_REPORT_SMTP_HOST: ${{ secrets.WEEKLY_REPORT_SMTP_HOST }}
+      WEEKLY_REPORT_SMTP_PORT: ${{ vars.WEEKLY_REPORT_SMTP_PORT }}
+      WEEKLY_REPORT_SMTP_USERNAME: ${{ secrets.WEEKLY_REPORT_SMTP_USERNAME }}
+      WEEKLY_REPORT_SMTP_PASSWORD: ${{ secrets.WEEKLY_REPORT_SMTP_PASSWORD }}
+      WEEKLY_REPORT_API_ENDPOINT: ${{ secrets.WEEKLY_REPORT_API_ENDPOINT }}
+      WEEKLY_REPORT_API_KEY: ${{ secrets.WEEKLY_REPORT_API_KEY }}
+      AI_INSIGHT_PROVIDER: ${{ vars.AI_INSIGHT_PROVIDER }}
+      AI_INSIGHT_ENDPOINT: ${{ secrets.AI_INSIGHT_ENDPOINT }}
+      AI_INSIGHT_API_KEY: ${{ secrets.AI_INSIGHT_API_KEY }}
+      AI_INSIGHT_TIMEOUT_MS: ${{ vars.AI_INSIGHT_TIMEOUT_MS }}
+      AI_INSIGHT_PROMPT_VERSION: ${{ vars.AI_INSIGHT_PROMPT_VERSION }}
+      AI_INSIGHT_PROMPT_AUDIENCE: ${{ vars.AI_INSIGHT_PROMPT_AUDIENCE }}
+      AI_INSIGHT_MAX_INSIGHTS: ${{ vars.AI_INSIGHT_MAX_INSIGHTS }}
+      PUSH_DELIVERY_PROVIDER: ${{ vars.PUSH_DELIVERY_PROVIDER }}
+      PUSH_VAPID_PUBLIC_KEY: ${{ secrets.PUSH_VAPID_PUBLIC_KEY }}
+      PUSH_VAPID_PRIVATE_KEY: ${{ secrets.PUSH_VAPID_PRIVATE_KEY }}
+      PUSH_VAPID_SUBJECT: ${{ vars.PUSH_VAPID_SUBJECT }}
+      REDIS_ENABLED: ${{ vars.REDIS_ENABLED }}
+      REDIS_URL: ${{ secrets.REDIS_URL }}
+      REDIS_NAMESPACE: ${{ vars.REDIS_NAMESPACE }}
+      REDIS_PURPOSES: ${{ vars.REDIS_PURPOSES }}
+      SERVICE_NAME: ${{ vars.SERVICE_NAME }}
+      RELEASE_VERSION: ${{ github.sha }}
+      ERROR_TRACKING_ENABLED: ${{ vars.ERROR_TRACKING_ENABLED }}
+      ERROR_TRACKING_PROVIDER: ${{ vars.ERROR_TRACKING_PROVIDER }}
+      ERROR_TRACKING_DSN: ${{ secrets.ERROR_TRACKING_DSN }}
+      METRICS_ENABLED: ${{ vars.METRICS_ENABLED }}
+      METRICS_PROVIDER: ${{ vars.METRICS_PROVIDER }}
+      METRICS_PATH: ${{ vars.METRICS_PATH }}
+      METRICS_AUTH_TOKEN: ${{ secrets.METRICS_AUTH_TOKEN }}
+      PROMETHEUS_URL: ${{ vars.PROMETHEUS_URL }}
+      PROMETHEUS_PUBLIC_URL: ${{ vars.PROMETHEUS_PUBLIC_URL }}
+      GRAFANA_PUBLIC_URL: ${{ vars.GRAFANA_PUBLIC_URL }}
+      ALERTMANAGER_PUBLIC_URL: ${{ vars.ALERTMANAGER_PUBLIC_URL }}
+      OBSERVABILITY_QUERY_TIMEOUT_MS: ${{ vars.OBSERVABILITY_QUERY_TIMEOUT_MS }}
+      NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+      NEXT_PUBLIC_REALTIME_URL: ${{ vars.NEXT_PUBLIC_REALTIME_URL }}
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${{ vars.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
+      ENABLE_DEPLOY_HOOKS: ${{ inputs.run_deploy_hooks }}
+      BACKEND_DEPLOY_HOOK_URL: ${{ secrets.BACKEND_DEPLOY_HOOK_URL }}
+      FRONTEND_DEPLOY_HOOK_URL: ${{ secrets.FRONTEND_DEPLOY_HOOK_URL }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate deployment environment
+        run: node scripts/validate-deployment-env.mjs --mode all
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Validate Prisma schema
+        working-directory: backend
+        run: npx prisma validate
+
+      - name: Backend typecheck and build
+        working-directory: backend
+        run: |
+          npm run typecheck
+          npm run build
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Frontend typecheck and build
+        working-directory: frontend
+        run: |
+          npm run typecheck
+          npm run build
+
+      - name: Trigger backend deploy hook
+        if: ${{ inputs.run_deploy_hooks }}
+        run: curl --fail --silent --show-error --request POST "$BACKEND_DEPLOY_HOOK_URL"
+
+      - name: Trigger frontend deploy hook
+        if: ${{ inputs.run_deploy_hooks }}
+        run: curl --fail --silent --show-error --request POST "$FRONTEND_DEPLOY_HOOK_URL"

@@ -1,0 +1,2 @@
+ALTER TABLE "Quest"
+ADD COLUMN "reminderSentAt" TIMESTAMP(3);

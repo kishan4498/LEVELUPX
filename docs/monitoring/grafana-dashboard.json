@@ -1,0 +1,54 @@
+{
+  "title": "LevelUpX API Overview",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "title": "HTTP Request Rate",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(levelupx_http_requests_total[5m])) by (status_class)"
+        }
+      ]
+    },
+    {
+      "title": "HTTP p95 Latency",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(levelupx_http_request_duration_seconds_bucket[5m])) by (le))"
+        }
+      ]
+    },
+    {
+      "title": "Unhandled Errors",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(levelupx_unhandled_errors_total[5m])) by (error_name)"
+        }
+      ]
+    },
+    {
+      "title": "Process CPU",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "rate(levelupx_process_cpu_user_seconds_total[5m])"
+        }
+      ]
+    },
+    {
+      "title": "Heap Used",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "levelupx_nodejs_heap_size_used_bytes"
+        }
+      ]
+    }
+  ]
+}
