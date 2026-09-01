@@ -1,8 +1,7 @@
 # LevelUpX
 
 LevelUpX is a gameful productivity application that turns real work into quests,
-focus sessions, progression, and useful feedback. The product follows
-`systemdesign.md` and `synop.md` while keeping the backend as a modular
+focus sessions, progression, and useful feedback. The backend is a modular
 monolith that can be split into services later.
 
 ## What Is Included
@@ -31,9 +30,7 @@ monolith that can be split into services later.
 | Security | bcrypt, JWT access tokens, opaque refresh sessions, WebAuthn |
 | Operations | Docker Compose, Prometheus, Alertmanager, Grafana, Sentry hooks, structured logs |
 
-The main applications live in `frontend/` and `backend/`. Operational and
-design decisions live in `docs/`, `UI_UX_BLUEPRINT.md`, and
-`PROJECT_LOG.md`.
+The main applications live in `frontend/` and `backend/`.
 
 ## Run With Docker
 
@@ -90,7 +87,7 @@ docker compose down
 Do not commit `.env` or `ops/monitoring/secrets/metrics-token.local`. Running
 the generator with `--force` rotates local JWT and scrape secrets, invalidates
 existing access tokens, and requires the backend and Prometheus to restart
-together. See `docs/monitoring.md` for the complete runbook.
+together.
 
 ## Local Development
 
@@ -113,9 +110,6 @@ cd frontend
 npm install
 npm run dev
 ```
-
-See `docs/environment.md` for the complete environment contract and
-`docs/test-database.md` before running database-backed tests.
 
 ## Verification
 
@@ -213,18 +207,4 @@ http://localhost:8025. Codes and reset tokens are not returned by the API or
 printed to backend logs. A public deployment must replace Mailpit with a real
 SMTP or email API provider while keeping `AUTH_EMAIL_PRINT_CODES_TO_CONSOLE`
 and `AUTH_DEV_DISCLOSE_CODES` set to `false`. Full security behavior and
-recovery rules are documented in `docs/auth-security.md`.
-
-## Project Records
-
-- `PROJECT_LOG.md`: current handoff and latest release.
-- `PROJECT_LOG_2026-08_OBSERVABILITY_STACK.md`: protected metrics, local monitoring stack, alerts, and super-admin history.
-- `PROJECT_LOG_2026-08_TRUSTED_DEVICE_LIFECYCLE.md`: device-bound privileged sessions and guarded device revocation.
-- `PROJECT_LOG_2026-08_PRIVILEGED_TWO_STEP_INVARIANT.md`: database-enforced admin two-step policy.
-- `PROJECT_LOG_2026-08_VERIFIED_ROOT_ACTIVATION.md`: verified signup and possession-gated root activation.
-- `PROJECT_LOG_2026-08_AUTH_EMAIL_DELIVERY.md`: local SMTP and auth-secret hardening.
-- `PROJECT_LOG_2026-08_PRODUCT_RELEASE.md`: consolidated product release work.
-- `PROJECT_HISTORY.md`: earlier fragment history.
-- `PROJECT_TODO.md`: intentionally deferred external and operational work.
-- `UI_UX_PROGRESS.md`: whole-site refinement status.
-- `docs/synopsis-adherence.md`: synopsis coverage and remaining boundaries.
+recovery rules are enforced by the API and database.
