@@ -22,6 +22,7 @@ import { PagePanel, PanelHeader, PanelTag, RouteFallback, SectionHeading, Suppor
 import { StatCard } from "@/components/ui/StatCard";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { apiRequest, errorMessage } from "@/lib/api";
+import { downloadBlob } from "@/lib/download";
 import type { AnalyticsRecommendationMeta, FocusConsistency, HeatmapDay, WeeklySummary } from "@/types/analytics";
 
 const emptyWeeklySummary: WeeklySummary = {
@@ -105,13 +106,7 @@ function csvCell(cell: string | number | null) {
 function downloadCsv(filename: string, csvLines: (string | number | null)[][]) {
   const csv = csvLines.map((csvLine) => csvLine.map(csvCell).join(",")).join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
+  downloadBlob(blob, filename);
 }
 
 function PanelTitle({ icon: Icon, iconClass, title, children }: { icon: LucideIcon; iconClass: string; title: string; children: ReactNode }) {

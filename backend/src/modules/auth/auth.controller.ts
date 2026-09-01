@@ -3,10 +3,10 @@ import type { RequestHandler } from "express";
 import type { AuthRequest } from "../../common/types/auth.types.js";
 import type { AuthService } from "./auth.service.js";
 import type {
-  AuthResp,
-  LoginResp,
-  ResetPwdResp,
-  VerifyEmailResp
+  AuthResponse,
+  LoginResponse,
+  ResetPasswordResponse,
+  VerifyEmailResponse
 } from "./auth.types.js";
 import type { AuthSessionService, SessionContext } from "./authSession.service.js";
 
@@ -196,7 +196,7 @@ export class AuthController {
   private async attachSession(
     req: Parameters<RequestHandler>[0],
     res: Parameters<RequestHandler>[1],
-    auth: AuthResp | LoginResp | VerifyEmailResp | ResetPwdResp
+    auth: AuthResponse | LoginResponse | VerifyEmailResponse | ResetPasswordResponse
   ) {
     if (!("accessToken" in auth) || auth.user.role !== "USER") {
       return;

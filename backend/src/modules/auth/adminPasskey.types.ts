@@ -5,7 +5,7 @@ import type {
   RegistrationResponseJSON
 } from "@simplewebauthn/server";
 
-import type { AuthResp } from "./auth.types.js";
+import type { AuthResponse } from "./auth.types.js";
 
 export type AdminPasskeyDto = {
   id: string;
@@ -24,7 +24,7 @@ export type AdminPasskeyListDto = {
 
 export type BeginAdminPasskeyRegistrationDto = {
   options: PublicKeyCredentialCreationOptionsJSON;
-  session: AuthResp;
+  session: AuthResponse;
 };
 
 export type VerifyAdminPasskeyRegistrationInput = {
@@ -32,7 +32,7 @@ export type VerifyAdminPasskeyRegistrationInput = {
   response: RegistrationResponseJSON;
 };
 
-export type VerifyAdminPasskeyRegistrationDto = AuthResp & {
+export type VerifyAdminPasskeyRegistrationDto = AuthResponse & {
   passkey: AdminPasskeyDto;
 };
 

@@ -44,9 +44,9 @@ import { EmptyPanelMessage, MetaLabel, PageSection, PanelHeader, PanelTag, Panel
 import { StatCard } from "@/components/ui/StatCard";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { apiDownload, apiRequest, errorMessage } from "@/lib/api";
+import { downloadBlob } from "@/lib/download";
 import type {
   AdminAbuseReport,
-  AdminAbuseSeverity,
   AdminAbuseStatus,
   AdminAction,
   AdminAnalytics,
@@ -61,285 +61,35 @@ import type {
   AdminUserStatus
 } from "@/types/admin";
 
+import {
+  abuseStatusClass,
+  abuseStatusOptions,
+  type AnalyticsExportFormat,
+  emptyAnalytics,
+  emptyDashboard,
+  emptyEconomySettings,
+  emptyProductFunnel,
+  emptySystemHealth,
+  formatBytes,
+  formatDate,
+  formatDateTime,
+  formatMonitoringTime,
+  labelize,
+  marketplaceStatusClass,
+  observabilityClass,
+  replaceAbuseReport,
+  replaceListing,
+  replaceUser,
+  roleOptions,
+  safeguardClass,
+  severityClass,
+  statusClass,
+  statusOptions,
+  summarizeMetadata,
+  toEconomyForm
+} from "./admin.model";
+
 Chart.register(CategoryScale, LinearScale, PointElement, LineElement, LineController, Filler, Legend, ChartTooltip);
-
-const emptyDashboard: AdminDashboard = {
-  users: {
-    total: 0,
-    active: 0,
-    banned: 0,
-    suspended: 0
-  },
-  abuseReports: {
-    open: 0,
-    critical: 0
-  }
-};
-
-const statusOptions: AdminUserStatus[] = ["ACTIVE", "SUSPENDED", "BANNED"];
-const roleOptions: AdminUserRole[] = ["USER", "ADMIN", "SUPER_ADMIN"];
-const abuseStatusOptions: AdminAbuseStatus[] = ["OPEN", "REVIEWED", "ACTION_TAKEN", "DISMISSED"];
-type AnalyticsExportFormat = "csv" | "pdf";
-
-const emptyEconomySettings: AdminEconomySettings = {
-  id: "",
-  xpMultiplier: 1,
-  coinMultiplier: 1,
-  dailyCoinLimit: 500,
-  maxQuestReward: 1000,
-  inflationRate: 0,
-  updatedBy: null,
-  updatedAt: ""
-};
-
-const emptyAnalytics: AdminAnalytics = {
-  activeUsersLast7Days: 0,
-  xpGeneratedLast30Days: 0,
-  coinInflationLast30Days: {
-    earned: 0,
-    spent: 0,
-    net: 0
-  },
-  rewardSourcesLast30Days: [],
-  coinFlowByTypeLast30Days: [],
-  economySafeguards: [],
-  abuseReports: {
-    open: 0,
-    reviewed: 0,
-    actionTaken: 0,
-    dismissed: 0
-  },
-  mostActiveGuilds: []
-};
-
-const emptySystemHealth: AdminSystemHealth = {
-  service: "levelupx-api",
-  status: "OK",
-  releaseVersion: null,
-  uptimeSeconds: 0,
-  timestamp: "",
-  runtime: {
-    nodeVersion: "",
-    environment: "development",
-    memoryRssMb: 0,
-    memoryHeapUsedMb: 0,
-    memoryHeapTotalMb: 0
-  },
-  readiness: {
-    database: "missing-url",
-    metrics: "disabled",
-    prometheus: "disabled",
-    redis: "disabled",
-    backgroundJobs: "manual-runner"
-  },
-  observability: {
-    status: "disabled",
-    message: "Prometheus monitoring is disabled.",
-    targetUp: null,
-    fiveMinuteRequests: null,
-    errorRatePercent: null,
-    p95LatencyMs: null,
-    requestRateHistory: [],
-    activeAlerts: [],
-    links: {
-      prometheus: null,
-      grafana: null,
-      alertmanager: null
-    },
-    sampledAt: ""
-  },
-  apiRequests: {
-    totalRecentRequests: 0,
-    errorRequests: 0,
-    clientErrorRequests: 0,
-    averageDurationMs: 0,
-    recentRequests: []
-  },
-  security: {
-    adminTwoStepRequired: true,
-    tokenDbRecheckEnabled: true,
-    staleTokenInvalidationEnabled: true,
-    superAdminMonitoringOnly: true
-  }
-};
-
-const emptyProductFunnel: AdminProductFunnel = {
-  from: "",
-  to: "",
-  steps: []
-};
-
-function toEconomyForm(settings: AdminEconomySettings) {
-  return {
-    xpMultiplier: String(settings.xpMultiplier),
-    coinMultiplier: String(settings.coinMultiplier),
-    dailyCoinLimit: String(settings.dailyCoinLimit),
-    maxQuestReward: String(settings.maxQuestReward),
-    inflationRate: String(settings.inflationRate)
-  };
-}
-
-function downloadFile(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
-}
-
-function formatDate(date: string) {
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric"
-  }).format(new Date(date));
-}
-
-function statusClass(status: AdminUserStatus) {
-  if (status === "ACTIVE") {
-    return "bg-mint/10 text-mint";
-  }
-
-  if (status === "SUSPENDED") {
-    return "bg-ember/10 text-ember";
-  }
-
-  return "bg-ink/10 text-ink";
-}
-
-function abuseStatusClass(status: AdminAbuseStatus) {
-  if (status === "OPEN") {
-    return "bg-ember/10 text-ember";
-  }
-
-  if (status === "ACTION_TAKEN") {
-    return "bg-violet/12 text-violet";
-  }
-
-  if (status === "DISMISSED") {
-    return "bg-ink/8 text-ink/55";
-  }
-
-  return "bg-mint/10 text-mint";
-}
-
-function severityClass(severity: AdminAbuseSeverity) {
-  if (severity === "CRITICAL") {
-    return "bg-ink text-white";
-  }
-
-  if (severity === "HIGH") {
-    return "bg-ember/12 text-ember";
-  }
-
-  if (severity === "MEDIUM") {
-    return "bg-violet/12 text-violet";
-  }
-
-  return "bg-mint/10 text-mint";
-}
-
-function marketplaceStatusClass(status: AdminMarketplaceListing["status"]) {
-  if (status === "ACTIVE") {
-    return "bg-mint/10 text-mint";
-  }
-
-  if (status === "SOLD") {
-    return "bg-violet/12 text-violet";
-  }
-
-  return "bg-ink/8 text-ink/55";
-}
-
-function safeguardClass(level: "OK" | "WATCH" | "RISK") {
-  if (level === "RISK") {
-    return "bg-ember/10 text-ember";
-  }
-
-  if (level === "WATCH") {
-    return "bg-violet/12 text-violet";
-  }
-
-  return "bg-mint/10 text-mint";
-}
-
-function observabilityClass(status: AdminSystemHealth["observability"]["status"]) {
-  if (status === "ready") {
-    return "bg-mint/10 text-mint";
-  }
-
-  if (status === "degraded") {
-    return "bg-violet/12 text-violet";
-  }
-
-  return status === "disabled" ? "bg-ink/6 text-ink/55" : "bg-ember/10 text-ember";
-}
-
-function labelize(label: string) {
-  return label
-    .toLowerCase()
-    .split(/[_-]/)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
-function formatBytes(bytes: number) {
-  if (bytes < 1024) {
-    return `${bytes} B`;
-  }
-
-  if (bytes < 1024 * 1024) {
-    return `${Math.round(bytes / 102.4) / 10} KB`;
-  }
-
-  return `${Math.round(bytes / 104857.6) / 10} MB`;
-}
-
-function summarizeMetadata(metadata: unknown) {
-  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
-    return "No metadata";
-  }
-
-  const fields = Object.entries(metadata)
-    .slice(0, 3)
-    .map(([key, entryValue]) => `${labelize(key)}: ${String(entryValue)}`);
-
-  return fields.length > 0 ? fields.join(" / ") : "No metadata";
-}
-
-function formatMonitoringTime(sampledAt: string) {
-  const timestamp = new Date(sampledAt);
-
-  if (!sampledAt || Number.isNaN(timestamp.getTime())) {
-    return "Not sampled";
-  }
-
-  return timestamp.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit"
-  });
-}
-
-function formatDateTime(startedAt: string | null) {
-  if (!startedAt) {
-    return "Unknown start time";
-  }
-
-  const timestamp = new Date(startedAt);
-
-  if (Number.isNaN(timestamp.getTime())) {
-    return "Unknown start time";
-  }
-
-  return timestamp.toLocaleString([], {
-    dateStyle: "medium",
-    timeStyle: "short"
-  });
-}
 
 function HealthTile({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -943,18 +693,6 @@ function AbuseReportCard({
   );
 }
 
-function replaceUser(users: AdminUser[], targetUserId: string, savedUser: AdminUser) {
-  return users.map((account) => (account.id === targetUserId ? savedUser : account));
-}
-
-function replaceAbuseReport(reports: AdminAbuseReport[], targetReportId: string, savedReport: AdminAbuseReport) {
-  return reports.map((report) => (report.id === targetReportId ? savedReport : report));
-}
-
-function replaceListing(listings: AdminMarketplaceListing[], targetListingId: string, cancelledListing: AdminMarketplaceListing) {
-  return listings.map((listing) => (listing.id === targetListingId ? cancelledListing : listing));
-}
-
 export default function AdminPage() {
   const { accessToken, user } = useRequireAuth();
   const [dashboard, setDashboard] = useState<AdminDashboard>(emptyDashboard);
@@ -1213,7 +951,7 @@ export default function AdminPage() {
 
     try {
       const report = await apiDownload(`/admin/analytics/export?format=${format}`);
-      downloadFile(report.blob, report.filename);
+      downloadBlob(report.blob, report.filename);
       setNotice(`Analytics ${format.toUpperCase()} export started.`);
       await loadData();
     } catch (err) {
@@ -1230,7 +968,7 @@ export default function AdminPage() {
 
     try {
       const report = await apiDownload(`/admin/marketplace/trade-history/export?format=${format}`);
-      downloadFile(report.blob, report.filename);
+      downloadBlob(report.blob, report.filename);
       setNotice(`Marketplace trade history ${format.toUpperCase()} export started.`);
       await loadData();
     } catch (err) {
@@ -1251,7 +989,7 @@ export default function AdminPage() {
 
     try {
       const storedReport = await apiDownload(`/admin/reports/${report.id}/download`);
-      downloadFile(storedReport.blob, storedReport.filename);
+      downloadBlob(storedReport.blob, storedReport.filename);
       setNotice(`${report.filename} download started.`);
     } catch (err) {
       setError(errorMessage(err, "Could not download report"));

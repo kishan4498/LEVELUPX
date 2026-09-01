@@ -8,30 +8,30 @@ import { env } from "../../config/env.js";
 import { AppError } from "../../common/errors/AppError.js";
 import { cosmeticCoinPrice } from "../users/cosmeticPricing.js";
 import type {
-  AuthResp,
+  AuthResponse,
   UserDto,
   EmailChallenge,
-  ForgotPwdInput,
+  ForgotPasswordInput,
   LoginInput,
-  LoginResp,
-  RegResp,
+  LoginResponse,
+  RegistrationResponse,
   RegisterInput,
-  ReqEmailVerifyInput,
-  ResetPwdResp,
-  ResetPwdInput,
-  RootActivated,
-  TwoStepPrefInput,
+  RequestEmailVerificationInput,
+  ResetPasswordResponse,
+  ResetPasswordInput,
+  RootActivationResponse,
+  TwoStepPreferenceInput,
   VerifyEmailInput,
-  VerifyEmailResp
+  VerifyEmailResponse
 } from "./auth.types.js";
 import type { AuthUserRecord, IAuthRepository } from "./auth.repository.js";
 import { createAuthEmailSenderFromEnv, type IAuthEmailSender } from "./authEmailDelivery.js";
 
 const SALT_ROUNDS = 12;
-const TWOSTEP_TTL = 10;
-const RESET_TTL = 30;
-const CHALLENGE_TTL = 5;
-const EMAIL_TTL = 15;
+const TWO_STEP_TTL_MINUTES = 10;
+const PASSWORD_RESET_TTL_MINUTES = 30;
+const ADMIN_CHALLENGE_TTL_MINUTES = 5;
+const EMAIL_VERIFICATION_TTL_MINUTES = 15;
 const MAX_ATTEMPTS = 5;
 
 export class AuthService {
@@ -40,7 +40,7 @@ export class AuthService {
     private readonly mailer: IAuthEmailSender = createAuthEmailSenderFromEnv()
   ) {}
 
-  async register(registration: RegisterInput): Promise<RegResp> {
+  async register(registration: RegisterInput): Promise<RegistrationResponse> {
     const existing = await this.repo.lookupByEmail(registration.email);
 
     if (existing) {
@@ -57,7 +57,7 @@ export class AuthService {
     return this.emailChallenge(user);
   }
 
-  async login(credentials: LoginInput): Promise<LoginResp> {
+  async login(credentials: LoginInput): Promise<LoginResponse> {
     const user = await this.repo.lookupByEmail(credentials.email);
 
     if (!user) {
@@ -98,16 +98,16 @@ export class AuthService {
     };
   }
 
-  async requestPasswordReset(reset: ForgotPwdInput) {
+  async requestPasswordReset(reset: ForgotPasswordInput) {
     const user = await this.repo.lookupByEmail(reset.email);
 
     if (!user || user.status !== UserStatus.ACTIVE) {
-      return this.pwdResetResp();
+      return this.passwordResetResponse();
     }
 
     const token = randomBytes(32).toString("hex");
     const hash = await bcrypt.hash(token, SALT_ROUNDS);
-    const expiresAt = addMinutes(new Date(), RESET_TTL);
+    const expiresAt = addMinutes(new Date(), PASSWORD_RESET_TTL_MINUTES);
 
     await this.repo.setPasswordResetToken({
       userId: user.id,
@@ -126,10 +126,10 @@ export class AuthService {
       ].join("\n")
     });
 
-    return this.pwdResetResp(token);
+    return this.passwordResetResponse(token);
   }
 
-  async resetPassword(reset: ResetPwdInput): Promise<ResetPwdResp> {
+  async resetPassword(reset: ResetPasswordInput): Promise<ResetPasswordResponse> {
     const user = await this.repo.lookupByEmail(reset.email);
 
     if (
@@ -181,7 +181,7 @@ export class AuthService {
     };
   }
 
-  async requestEmailVerification(credentials: ReqEmailVerifyInput): Promise<EmailChallenge> {
+  async requestEmailVerification(credentials: RequestEmailVerificationInput): Promise<EmailChallenge> {
     const user = await this.repo.lookupByEmail(credentials.email);
 
     if (!user || user.status !== UserStatus.ACTIVE || !(await bcrypt.compare(credentials.password, user.passwordHash))) {
@@ -195,7 +195,7 @@ export class AuthService {
     return this.emailChallenge(user);
   }
 
-  async verifyEmail(verification: VerifyEmailInput): Promise<VerifyEmailResp> {
+  async verifyEmail(verification: VerifyEmailInput): Promise<VerifyEmailResponse> {
     const user = await this.repo.lookupByEmail(verification.email);
     const ok = user ? await bcrypt.compare(verification.password, user.passwordHash) : false;
 
@@ -264,7 +264,7 @@ export class AuthService {
     };
   }
 
-  async enableTwoStep(userId: string, preference: TwoStepPrefInput): Promise<UserDto> {
+  async enableTwoStep(userId: string, preference: TwoStepPreferenceInput): Promise<UserDto> {
     const user = await this.requireUserWithPassword(userId, preference.currentPassword);
     const updated = await this.repo.setTwoStepEnabled({
       userId: user.id,
@@ -274,7 +274,7 @@ export class AuthService {
     return this.toDto(updated);
   }
 
-  async disableTwoStep(userId: string, preference: TwoStepPrefInput): Promise<UserDto> {
+  async disableTwoStep(userId: string, preference: TwoStepPreferenceInput): Promise<UserDto> {
     const user = await this.requireUserWithPassword(userId, preference.currentPassword);
 
     if (user.role === Role.ADMIN || user.role === Role.SUPER_ADMIN) {
@@ -303,7 +303,7 @@ export class AuthService {
     return this.toDto(user);
   }
 
-  async refreshStandardUser(userId: string): Promise<AuthResp> {
+  async refreshStandardUser(userId: string): Promise<AuthResponse> {
     const user = await this.repo.lookupById(userId);
 
     if (!user || user.status !== UserStatus.ACTIVE || user.role !== Role.USER || !user.emailVerifiedAt) {
@@ -320,7 +320,7 @@ export class AuthService {
     userId: string,
     adminDeviceId: string,
     passkeyVerified: boolean
-  ): Promise<AuthResp> {
+  ): Promise<AuthResponse> {
     const user = await this.repo.lookupById(userId);
 
     if (
@@ -399,7 +399,7 @@ export class AuthService {
   private async emailChallenge(user: AuthUserRecord): Promise<EmailChallenge> {
     const code = String(randomInt(0, 100_000_000)).padStart(8, "0");
     const hash = await bcrypt.hash(code, SALT_ROUNDS);
-    const expiresAt = addMinutes(new Date(), EMAIL_TTL);
+    const expiresAt = addMinutes(new Date(), EMAIL_VERIFICATION_TTL_MINUTES);
 
     await this.repo.stageEmailVerification({
       userId: user.id,
@@ -440,7 +440,7 @@ export class AuthService {
   private async twoStepChallenge(user: AuthUserRecord, opts: { bootstrapAdmin?: boolean } = {}) {
     const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
     const hash = await bcrypt.hash(code, SALT_ROUNDS);
-    const expiresAt = addMinutes(new Date(), TWOSTEP_TTL);
+    const expiresAt = addMinutes(new Date(), TWO_STEP_TTL_MINUTES);
 
     await this.repo.setTwoStepChallenge({
       userId: user.id,
@@ -483,7 +483,7 @@ export class AuthService {
     };
   }
 
-  private async adminLogin(user: AuthUserRecord, credentials: LoginInput): Promise<LoginResp> {
+  private async adminLogin(user: AuthUserRecord, credentials: LoginInput): Promise<LoginResponse> {
     if (!credentials.adminDeviceKey) {
       return this.deviceChallenge();
     }
@@ -530,7 +530,7 @@ export class AuthService {
       adminChallenge: true,
       requiredFactors: ["trustedDeviceKey"],
       message: "Enter your trusted admin device key to continue.",
-      expiresAt: addMinutes(new Date(), CHALLENGE_TTL).toISOString()
+      expiresAt: addMinutes(new Date(), ADMIN_CHALLENGE_TTL_MINUTES).toISOString()
     };
   }
 
@@ -550,7 +550,7 @@ export class AuthService {
     const codeA = String(randomInt(0, 1_000_000)).padStart(6, "0");
     const codeB = String(randomInt(0, 1_000_000)).padStart(6, "0");
     const codeC = String(randomInt(0, 1_000_000)).padStart(6, "0");
-    const expiresAt = addMinutes(new Date(), CHALLENGE_TTL);
+    const expiresAt = addMinutes(new Date(), ADMIN_CHALLENGE_TTL_MINUTES);
 
     // Invalidate older code sets before issuing a replacement for this device.
     await this.repo.clearPendingSuperAdminChallenges({ userId: user.id, deviceId });
@@ -638,7 +638,7 @@ export class AuthService {
     await this.repo.clearTwoStepChallenge(user.id);
   }
 
-  private pwdResetResp(token?: string) {
+  private passwordResetResponse(token?: string) {
     return {
       message: "If the email exists, password reset instructions are available.",
       ...(token && canExposeDevSecrets() ? { devResetToken: token } : {})
@@ -654,7 +654,7 @@ export class AuthService {
     return Boolean(rootEmail && user.email.toLowerCase() === rootEmail);
   }
 
-  private rootActivated(user: AuthUserRecord): RootActivated {
+  private rootActivated(user: AuthUserRecord): RootActivationResponse {
     return {
       rootActivationComplete: true,
       message: "Root identity verified. Register a trusted device, then sign in through the privileged login flow.",

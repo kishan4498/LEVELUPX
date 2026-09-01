@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/Input";
 import { Notice } from "@/components/ui/Notice";
 import { SectionHeading } from "@/components/ui/PagePrimitives";
 import { apiDownload, apiRequest, errorMessage } from "@/lib/api";
+import { downloadBlob } from "@/lib/download";
 import { useAuthStore } from "@/store/auth.store";
 import type { AuthUser } from "@/types/auth";
 import type { UserSession } from "@/types/session";
@@ -60,12 +61,7 @@ export function AccountControlPanel({ enabled, role }: { enabled: boolean; role:
 
     try {
       const file = await apiDownload("/account/export");
-      const url = URL.createObjectURL(file.blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = file.filename;
-      link.click();
-      URL.revokeObjectURL(url);
+      downloadBlob(file.blob, file.filename);
       setNotice("Account export downloaded.");
     } catch (err) {
       setError(errorMessage(err, "Could not export account data."));

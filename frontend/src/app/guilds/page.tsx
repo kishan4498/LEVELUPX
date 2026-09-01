@@ -41,6 +41,14 @@ import {
 import type { Guild, GuildVisibility, TeamQuest } from "@/types/guild";
 import type { LeaderboardPeriod, LeaderboardRow } from "@/types/leaderboard";
 
+import {
+  findBoardScope,
+  formatGuildDate,
+  guildMedalClass,
+  keepSelectedGuild,
+  questProgressUpdater
+} from "./guilds.model";
+
 const leaderboardPeriods: { value: LeaderboardPeriod; label: string }[] = [
   { value: "DAILY", label: "Daily" },
   { value: "WEEKLY", label: "Weekly" },
@@ -53,72 +61,6 @@ const questRewardClasses = {
   xp: "inline-flex items-center gap-1 rounded-md bg-violet/10 px-2 py-1 text-violet",
   coins: "inline-flex items-center gap-1 rounded-md bg-ember/10 px-2 py-1 text-ember"
 } as const;
-
-function formatDate(dateIso: string) {
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric"
-  }).format(new Date(dateIso));
-}
-
-function mergeQuestProgress(teamQuests: TeamQuest[], progressEvent: TeamQuestProgressUpdatedPayload) {
-  return teamQuests.map((teamQuest) => {
-    if (teamQuest.id !== progressEvent.teamQuestId) {
-      return teamQuest;
-    }
-
-    return {
-      ...teamQuest,
-      currentProgress: progressEvent.currentProgress,
-      targetValue: progressEvent.targetValue,
-      status: progressEvent.status as TeamQuest["status"],
-      ...(progressEvent.rewardPayout
-        ? {
-            rewardPayout: {
-              ...progressEvent.rewardPayout
-            } satisfies NonNullable<TeamQuest["rewardPayout"]>
-          }
-        : {})
-    };
-  });
-}
-
-function questProgressUpdater(progressEvent: TeamQuestProgressUpdatedPayload) {
-  return (teamQuests: TeamQuest[]) => mergeQuestProgress(teamQuests, progressEvent);
-}
-
-function keepSelectedGuild(guilds: Guild[], selectedGuild: Guild | null) {
-  if (!selectedGuild) {
-    return guilds[0] ?? null;
-  }
-
-  return guilds.find((listedGuild) => listedGuild.id === selectedGuild.id) ?? guilds[0] ?? null;
-}
-
-function findBoardScope(
-  scopes: LeaderboardSnapshotsRefreshedPayload["scopes"],
-  guildId: string,
-  period: LeaderboardPeriod
-) {
-  return scopes.find((snapshot) => snapshot.guildId === guildId && snapshot.period === period);
-}
-
-function medalClass(rank: number) {
-  if (rank === 1) {
-    return "bg-ember/12 text-ember";
-  }
-
-  if (rank === 2) {
-    return "bg-violet/12 text-violet";
-  }
-
-  if (rank === 3) {
-    return "bg-mint/10 text-mint";
-  }
-
-  return "bg-ink/8 text-ink/55";
-}
 
 export default function GuildsPage() {
   const { accessToken, user } = useRequireAuth();
@@ -501,7 +443,7 @@ export default function GuildsPage() {
       <>
         <PanelTop>
           <div>
-            <p className="text-sm font-semibold text-mint">Created {formatDate(selectedGuild.createdAt)}</p>
+            <p className="text-sm font-semibold text-mint">Created {formatGuildDate(selectedGuild.createdAt)}</p>
             <h2 className="mt-1 flex items-center gap-2 text-2xl font-bold">
               {selectedGuild.name}
               {selectedGuild.visibility === "PRIVATE" && <LockKeyhole className="text-violet" size={19} />}
@@ -1113,7 +1055,7 @@ function BoardRow({ current, memberRank }: { current: boolean; memberRank: Leade
         current ? "bg-mint/5" : "bg-white"
       )}
     >
-      <span className={clsx("inline-flex h-8 w-12 items-center justify-center rounded-md font-bold", medalClass(memberRank.rank))}>
+      <span className={clsx("inline-flex h-8 w-12 items-center justify-center rounded-md font-bold", guildMedalClass(memberRank.rank))}>
         #{memberRank.rank}
       </span>
       <div className="min-w-0">
@@ -1134,7 +1076,7 @@ function MemberRow({ member }: { member: NonNullable<Guild["members"]>[number] }
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-ink/8 p-4">
       <div>
         <p className="font-semibold">{member.name}</p>
-        <p className="mt-1 text-sm text-ink/50">Joined {formatDate(member.joinedAt)}</p>
+        <p className="mt-1 text-sm text-ink/50">Joined {formatGuildDate(member.joinedAt)}</p>
       </div>
       <span className="inline-flex items-center gap-2 rounded-md bg-paper px-2 py-1 text-sm font-semibold text-ink/60">
         {member.role === "OWNER" ? <Crown size={15} /> : <Shield size={15} />}
@@ -1165,7 +1107,7 @@ function TeamQuestCard({
         <div>
           <p className="font-semibold">{quest.title}</p>
           <p className="mt-1 text-sm text-ink/50">
-            {quest.targetType} / {formatDate(quest.startDate)} - {formatDate(quest.endDate)}
+            {quest.targetType} / {formatGuildDate(quest.startDate)} - {formatGuildDate(quest.endDate)}
           </p>
         </div>
         <span className="rounded-md bg-paper px-2 py-1 text-sm font-semibold text-ink/60">{quest.status}</span>

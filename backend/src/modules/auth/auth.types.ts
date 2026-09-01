@@ -12,7 +12,7 @@ export type UserDto = {
   profile: ProfileDto | null;
 };
 
-export type AuthResp = {
+export type AuthResponse = {
   user: UserDto;
   accessToken: string;
 };
@@ -40,22 +40,22 @@ export type EmailChallenge = {
   codeLength: 8;
 };
 
-export type RootActivated = {
+export type RootActivationResponse = {
   rootActivationComplete: true;
   message: string;
   user: UserDto;
 };
 
-export type SignedOutReset = {
+export type SignedOutResetResponse = {
   signInRequired: true;
   message: string;
   user: UserDto;
 };
 
-export type RegResp = EmailChallenge;
-export type LoginResp = AuthResp | TwoStepChallenge | EmailChallenge;
-export type VerifyEmailResp = AuthResp | RootActivated;
-export type ResetPwdResp = AuthResp | SignedOutReset;
+export type RegistrationResponse = EmailChallenge;
+export type LoginResponse = AuthResponse | TwoStepChallenge | EmailChallenge;
+export type VerifyEmailResponse = AuthResponse | RootActivationResponse;
+export type ResetPasswordResponse = AuthResponse | SignedOutResetResponse;
 
 export type RegisterInput = {
   name: string;
@@ -76,11 +76,11 @@ export type LoginInput = {
   superAdminCodeC?: string;
 };
 
-export type ForgotPwdInput = {
+export type ForgotPasswordInput = {
   email: string;
 };
 
-export type ResetPwdInput = {
+export type ResetPasswordInput = {
   email: string;
   token: string;
   newPassword: string;
@@ -92,11 +92,11 @@ export type VerifyEmailInput = {
   code: string;
 };
 
-export type ReqEmailVerifyInput = {
+export type RequestEmailVerificationInput = {
   email: string;
   password: string;
 };
 
-export type TwoStepPrefInput = {
+export type TwoStepPreferenceInput = {
   currentPassword: string;
 };

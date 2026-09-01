@@ -26,6 +26,7 @@ import { Notice } from "@/components/ui/Notice";
 import { MetaLabel, PagePanel, PageSection, PanelTag, RouteFallback, SectionHeading, SupportingText } from "@/components/ui/PagePrimitives";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { apiDownload, apiRequest, errorMessage } from "@/lib/api";
+import { downloadBlob } from "@/lib/download";
 import { trackProductEvent } from "@/lib/productEvents";
 import type {
   CoinHistoryItem,
@@ -216,13 +217,7 @@ export default function RewardsPage() {
 
     try {
       const file = await apiDownload("/rewards/export");
-      const url = URL.createObjectURL(file.blob);
-      const link = document.createElement("a");
-
-      link.href = url;
-      link.download = file.filename;
-      link.click();
-      URL.revokeObjectURL(url);
+      downloadBlob(file.blob, file.filename);
     } catch (err) {
       setError(errorMessage(err, "Could not export reward history"));
     } finally {

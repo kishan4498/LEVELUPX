@@ -20,7 +20,7 @@ import type {
   VerifyAdminPasskeyRegistrationDto,
   VerifyAdminPasskeyRegistrationInput
 } from "./adminPasskey.types.js";
-import type { AuthResp } from "./auth.types.js";
+import type { AuthResponse } from "./auth.types.js";
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 
@@ -31,7 +31,7 @@ export class AdminPasskeyService {
       userId: string,
       adminDeviceId: string,
       passkeyVerified: boolean
-    ) => Promise<AuthResp>,
+    ) => Promise<AuthResponse>,
     private readonly now: () => Date = () => new Date()
   ) {}
 
@@ -183,7 +183,7 @@ export class AdminPasskeyService {
     userId: string,
     adminDeviceId: string,
     authentication: VerifyAdminPasskeyAuthenticationInput
-  ): Promise<AuthResp> {
+  ): Promise<AuthResponse> {
     await this.requireAdmin(userId);
     const challenge = await this.repo.consumeChallenge({
       userId,
