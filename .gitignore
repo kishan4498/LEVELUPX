@@ -4,18 +4,41 @@ dist/
 **/*.tsbuildinfo
 **/coverage/
 .env
-.env.local
-.env.*.local
+.env.*
+# Keep safe configuration templates in the repository.
+!.env.example
+!.env.*.example
 frontend/playwright-report/
 frontend/test-results/
 ops/monitoring/secrets/*.local
 
+# Academic reports, declarations, university forms and rendered QA output
+/deliverables/
+
+# Local report-generation utilities; application utilities live in scripts/.
+/tools/
+
+# Scratch work and report-rendering workspaces
+/tmp/
+/report_work/
+
 # LibreOffice temporary/profile files
-report_work/lo_profile/
 **/lo_profile/
+**/lo_profile_*/
+~$*
+
+# Python caches/environments used by local document tooling
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
 
 # Other generated files
 **/*.tmp
+*.log
+.DS_Store
+Thumbs.db
+Desktop.ini
 
 # CCE (code-context-engine)
 # CCE local cache (per-machine, not for version control)
