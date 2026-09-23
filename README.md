@@ -167,14 +167,14 @@ After activation, register a trusted device before attempting privileged login.
 From a running Docker stack:
 
 ```powershell
-docker compose exec backend npm run auth:admin-device -- --email kishanpansuriya4466@gmail.com --label owner-laptop
+docker compose exec backend npm run auth:admin-device -- --email [] --label owner-laptop
 ```
 
 For a local backend process:
 
 ```powershell
 cd backend
-npm run auth:admin-device -- --email kishanpansuriya4466@gmail.com --label owner-laptop
+npm run auth:admin-device -- --email [] --label owner-laptop
 ```
 
 The command prints the device key once and stores only its bcrypt hash. Keep the
