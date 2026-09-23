@@ -154,7 +154,7 @@ credential, a valid Prometheus provider and route, and the backend-visible
 ## Admin Provisioning
 
 `ROOT_SUPER_ADMIN_EMAIL` is set to
-`kishanpansuriya4466@gmail.com` in the Docker template. This setting protects
+`[]` in the Docker template. This setting protects
 that exact identity from status or role changes in the admin panel. Registering
 the address does not grant a session or a role by itself. The owner must prove
 both the account password and an emailed eight-digit verification code.
